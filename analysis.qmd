@@ -1,0 +1,49 @@
+---
+title: "Seguro Popular"
+author: "Henry Yang"
+format: html
+execute:
+  echo: false
+---
+
+```{r}
+#| message: false
+library(tidyverse)
+library(primer.data)
+library(tidymodels)
+library(broom)
+```
+
+```{r}
+#| cache: true
+# Select the key columns we need for analysis
+x <- sps |> 
+  select(treatment, t2_health_exp_3m, age, sex, education) |> 
+  
+  # Drop any rows that have missing values (NA) in any of these columns
+  drop_na() |> 
+  
+  # Recode treatment (0/1) to a factor with "Not enrolled" as the first (reference) level
+  mutate(treatment = factor(treatment, 
+                            levels = c(0, 1), 
+                            labels = c("Not enrolled", "Enrolled")))
+```
+
+```{r}
+ggplot(x, aes(x = treatment, y = t2_health_exp_3m)) +
+  # Create a jitter plot to spread out overlapping points
+  geom_jitter(alpha = 0.5, width = 0.2) +
+  
+  # Calculate and plot the mean for each treatment group as a distinct point
+  stat_summary(fun = "mean", geom = "point", color = "red", size = 4) +
+  
+  # Zoom the plot to 0-5000 pesos without discarding data outside that range
+  coord_cartesian(ylim = c(0, 5000))
+```
+
+```{r}
+x |> count(treatment)
+```
+
+## Summary
+Households enrolling in Seguro Popular might have less of a strain in out-of-pocket medical spending. Out data comes from the Mexican universal health insurance programme in 2005, and we are trying to find the average causal effect of Seguro Popular enrollment on a household’s three-month out-of-pocket health spending. A potential weakness of this model is how it models data that was acquired through voluntary participants, and each survey conducted was self-reported.
