@@ -12,6 +12,8 @@ library(tidyverse)
 library(primer.data)
 library(tidymodels)
 library(broom)
+library(gt)
+library(marginaleffects)
 ```
 
 ```{r}
@@ -30,20 +32,33 @@ x <- sps |>
 ```
 
 ```{r}
-ggplot(x, aes(x = treatment, y = t2_health_exp_3m)) +
-  # Create a jitter plot to spread out overlapping points
-  geom_jitter(alpha = 0.5, width = 0.2) +
-  
-  # Calculate and plot the mean for each treatment group as a distinct point
-  stat_summary(fun = "mean", geom = "point", color = "red", size = 4) +
-  
-  # Zoom the plot to 0-5000 pesos without discarding data outside that range
-  coord_cartesian(ylim = c(0, 5000))
+#| cache: true
+fit_sp <- linear_reg(engine = "lm") |> fit(t2_health_exp_3m ~ treatment, data = x)
 ```
 
 ```{r}
-x |> count(treatment)
+# Tidy the predictions and plot them with confidence intervals
+plot_predictions(fit_sp, condition = "treatment", draw = FALSE) |> 
+  ggplot(aes(x = treatment, y = estimate, ymin = conf.low, ymax = conf.high)) +
+  
+  # Add points for the predicted values
+  geom_point(size = 3) +
+  
+  # Add error bars showing the 95% confidence interval bounds
+  geom_errorbar(width = 0.1) +
+  
+  # Customize labels with variables, takeaway, data source, and readable axis titles
+  labs(
+    title = "Predicted Health Expenses by Seguro Popular Enrollment Status",
+    subtitle = "Enrolled households have slightly lower predicted out-of-pocket health expenses",
+    caption = "Source: Seguro Popular Study (sps)",
+    x = "Seguro Popular Enrollment Status",
+    y = "Predicted Three-Month Health Expenses (Pesos)"
+  ) +
+  
+  # Apply a clean, minimalist style to the plot
+  theme_minimal()
 ```
 
 ## Summary
-Households enrolling in Seguro Popular might have less of a strain in out-of-pocket medical spending. Out data comes from the Mexican universal health insurance programme in 2005, and we are trying to find the average causal effect of Seguro Popular enrollment on a household’s three-month out-of-pocket health spending. A potential weakness of this model is how it models data that was acquired through voluntary participants, and each survey conducted was self-reported.
+Households enrolling in Seguro Popular might have less of a strain in out-of-pocket medical spending. Out data comes from the Mexican universal health insurance programme in 2005, and we are trying to find the average causal effect of Seguro Popular enrollment on a household’s three-month out-of-pocket health spending. A potential weakness of this model is how it models data that was acquired through voluntary participants, and each survey conducted was self-reported. We modeled the total out-of-pocket medical spending with a Normal Distribution as a function of being enrolled in Seguro Popular. One quantity of interest is that enrolling in Seguro Popular would result in an average out-of-pocket medical spending of 62 pesos less, with a 95% confidence interval of roughly -105 to -22 pesos
